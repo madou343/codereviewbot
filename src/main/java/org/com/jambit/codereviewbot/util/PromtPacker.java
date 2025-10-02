@@ -1,6 +1,5 @@
 package org.com.jambit.codereviewbot.util;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
@@ -8,7 +7,6 @@ import java.io.File;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -22,13 +20,6 @@ public class PromtPacker {
 
         List<String> chunks = new ArrayList<>();
         StringBuilder current = new StringBuilder();
-
-        final String header = """
-        Du bist ein präziser Code-Reviewer. Analysiere die folgenden Dateien.
-        Liefere Probleme, Risiken, Bugs, Security- und Performance-Hinweise sowie klare Verbesserungsvorschläge.
-        """;
-
-        current.append(header);
 
         for (File p : fileList) {
             String fileText = readFileSafe(p);
@@ -62,7 +53,6 @@ public class PromtPacker {
                     chunks.add(mapper.writeValueAsString(msg));
 
                     current.setLength(0);
-                    current.append(header);
                 }
 
                 current.append(block);
@@ -70,7 +60,7 @@ public class PromtPacker {
         }
 
         // letzten (nicht-leeren) Chunk hinzufügen
-        if (current.length() > header.length()) {
+        if (current.length() > 0) {
             ObjectNode msg = new ObjectMapper().createObjectNode()
                     .put("role", "user")
                     .put("content", current.toString());
