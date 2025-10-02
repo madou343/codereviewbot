@@ -16,6 +16,7 @@ public class Main {
 
     static String testGithubUrl = "https://github.com/madou343/websiteChecker.git";
     static String testFilePath = "C:\\Users\\mtheele\\CodeReviewBot\\ClonedRepos";
+    //static String testFilePath = "C:\\Users\\mtheele\\IdeaProjects\\TIP - Assortmenttool_2";
 
     public static void main(String[] args) throws Exception {
         System.out.println("Willkommen beim CodeReviewBot");
@@ -26,11 +27,10 @@ public class Main {
 
         System.out.println("Bitte nenne mir den Filepath wo hin kopiert werden soll");
         String filepath = scanner.nextLine();
-
-
-        RepoFetcher fetcher = new RepoFetcher();
-        fetcher.fetchRepo(testGithubUrl, testFilePath);
-         FileCollector collector = new FileCollector();
+//
+//        RepoFetcher fetcher = new RepoFetcher();
+//        fetcher.fetchRepo(testGithubUrl, testFilePath);
+           FileCollector collector = new FileCollector();
 
         List<File> importantFiles = collector.collectFiles(testFilePath);
 
