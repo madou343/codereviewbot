@@ -46,6 +46,22 @@ public class JptClient {
         return res.body();
     }
 
+    public String extractCompletionContent(String response) {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            JsonNode root = mapper.readTree(response);
+
+            // typischer OpenAI-kompatibler Response-Pfad
+            return root.path("choices")
+                    .get(0)
+                    .path("message")
+                    .path("content")
+                    .asText();
+        } catch (Exception e) {
+            throw new RuntimeException("Konnte Completion Content nicht extrahieren", e);
+        }
+    }
+
     public void printCompletionContent(String responseBody) {
         try {
             JsonNode root = mapper.readTree(responseBody);
