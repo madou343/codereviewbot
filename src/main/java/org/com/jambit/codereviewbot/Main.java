@@ -4,15 +4,17 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.com.jambit.codereviewbot.client.JptClient;
-import org.com.jambit.codereviewbot.git.RepoFetcher;
 import org.com.jambit.codereviewbot.summary.Aggregator;
 import org.com.jambit.codereviewbot.util.FileCollector;
 import org.com.jambit.codereviewbot.util.PromtPacker;
 
 import java.io.File;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Scanner;
 
 public class Main {
 
@@ -34,7 +36,8 @@ public class Main {
 
         int zahl = 0;
 
-        for (String promt : promtsArray) {
+        for (int i = 0; i < Math.min(20, promtsArray.size()); i++) {
+            String promt = promtsArray.get(i);
             zahl++;
             System.out.println("Durchlauf " + zahl + " von " + promtsArray.size());
             int remaining = promtsArray.size() - zahl;
@@ -45,7 +48,7 @@ public class Main {
 
             // neuen Request-Body bauen
             ObjectNode requestBody = mapper.createObjectNode();
-            requestBody.put("model", "codereviewbot");
+            requestBody.put("model", "codereviewbot20");
             requestBody.set("messages", mapper.createArrayNode().add(promtNode));
 
             String body = mapper.writeValueAsString(requestBody);
@@ -54,6 +57,8 @@ public class Main {
 
             String response = api.sendRequest(body);
 
+            System.out.println("Das ist der " + zahl + "durchlauf");
+            System.out.println(response);
             responses.add(api.extractCompletionContent(response));
 
         }
@@ -61,7 +66,7 @@ public class Main {
         Aggregator aggregator = new Aggregator();
 
         String finalResponse = aggregator.aggregate(responses);
-        System.out.println(finalResponse);
+        Aggregator.writeSummaryToFile(finalResponse, "src/main/resources/review-summary.txt");
 
     }
 }

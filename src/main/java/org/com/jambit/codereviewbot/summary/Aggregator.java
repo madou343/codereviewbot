@@ -12,10 +12,11 @@ import java.util.stream.Collectors;
 public class Aggregator {
 
     private static final String MODEL = "code-review-summary";
-    private static final int MAX_OUTPUT_TOKENS = 2000;
 
     private final JptClient jpt = new JptClient();
     private final ObjectMapper mapper = new ObjectMapper();
+
+    private static int counter = 0;
 
     /**
      * Nimmt eine Liste von Strings, fügt sie zusammen und gibt die vom Modell
@@ -27,20 +28,14 @@ public class Aggregator {
         }
 
         // Inhalte schlicht zusammenführen
-        String merged = rawResponses.stream()
+        String prompt = rawResponses.stream()
                 .map(s -> "- " + s)
                 .collect(Collectors.joining("\n"));
-
-        // Minimaler Prompt (ohne Templates)
-        String prompt = "Fasse die folgenden Punkte prägnant und ohne Dopplungen zusammen:\n\n"
-                + merged
-                + "\n\nAntworte kurz und strukturiert.";
 
         try {
             // OpenAI-kompatiblen Body bauen
             ObjectNode body = mapper.createObjectNode();
             body.put("model", MODEL);
-            body.put("max_tokens", MAX_OUTPUT_TOKENS);
 
             ArrayNode messages = mapper.createArrayNode();
             ObjectNode userMsg = mapper.createObjectNode();
@@ -49,6 +44,11 @@ public class Aggregator {
             messages.add(userMsg);
             body.set("messages", messages);
 
+            System.out.println("➡️ Sending request body:\n" +
+                    mapper.writerWithDefaultPrettyPrinter().writeValueAsString(body));
+
+
+
             String response = jpt.sendRequest(mapper.writeValueAsString(body));
             return jpt.extractCompletionContent(response);
 
@@ -56,4 +56,38 @@ public class Aggregator {
             throw new RuntimeException("Aggregation fehlgeschlagen", e);
         }
     }
+
+    public static void writeSummaryToFile(String content, String filename) {
+        if (content == null || content.isBlank()) {
+            System.out.println("Kein Inhalt zum Schreiben vorhanden – Datei wird nicht erstellt.");
+            return;
+        }
+
+        try {
+            java.nio.file.Path outputPath = java.nio.file.Paths.get(filename);
+            java.nio.file.Files.createDirectories(outputPath.getParent());
+
+            // 🔹 Zähler hochzählen
+            counter++;
+
+            // 🔹 Text vorbereiten: Nummer + Inhalt + Leerzeile
+            String numberedContent = "### Ausgabe " + counter + System.lineSeparator()
+                    + content + System.lineSeparator() + System.lineSeparator();
+
+            // 🔹 Datei anhängen statt überschreiben
+            java.nio.file.Files.writeString(
+                    outputPath,
+                    numberedContent,
+                    java.nio.charset.StandardCharsets.UTF_8,
+                    java.nio.file.StandardOpenOption.CREATE,
+                    java.nio.file.StandardOpenOption.APPEND
+            );
+
+            System.out.println("✅ Ausgabe " + counter + " gespeichert unter: " + outputPath.toAbsolutePath());
+        } catch (Exception e) {
+            System.err.println("❌ Fehler beim Schreiben der Datei: " + e.getMessage());
+            e.printStackTrace();
+        }
+    }
+
 }
