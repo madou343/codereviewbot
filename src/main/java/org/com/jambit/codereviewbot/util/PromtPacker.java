@@ -106,6 +106,7 @@ public class PromtPacker {
             return "/* Fehler beim Lesen: " + e.getMessage() + " */";
         }
     }
+
     private static boolean looksTextual(String content) {
         long nonPrintable = content.chars().filter(ch -> ch != '\n' && ch != '\r' && ch != '\t' && (ch < 32 || ch == 127)).count();
         return nonPrintable < content.length() * 0.01;
