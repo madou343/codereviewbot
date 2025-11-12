@@ -1,6 +1,7 @@
 // src/main/java/org/com/jambit/codereviewbot/summary/Aggregator.java
 package org.com.jambit.codereviewbot.summary;
 
+import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -22,7 +23,7 @@ public class Aggregator {
      * Nimmt eine Liste von Strings, fügt sie zusammen und gibt die vom Modell
      * erzeugte zusammengefasste Antwort zurück (ein einzelner API-Call).
      */
-    public String aggregate(List<String> rawResponses) {
+    public String aggregate(List<JsonNode> rawResponses) {
         if (rawResponses == null || rawResponses.isEmpty()) {
             return "";
         }
