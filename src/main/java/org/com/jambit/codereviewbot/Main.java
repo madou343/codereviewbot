@@ -6,13 +6,10 @@ import com.fasterxml.jackson.databind.node.ObjectNode;
 import org.com.jambit.codereviewbot.client.JptClient;
 import org.com.jambit.codereviewbot.summary.Aggregator;
 import org.com.jambit.codereviewbot.util.FileCollector;
+import org.com.jambit.codereviewbot.util.PromptRunLogger;
 import org.com.jambit.codereviewbot.util.PromtPacker;
 
 import java.io.File;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.nio.file.StandardOpenOption;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -32,11 +29,11 @@ public class Main {
         List<String> promtsArray = PromtPacker.buildCodeReviewChunks(importantFiles);
         ObjectMapper mapper = new ObjectMapper();
 
-        List<String> responses = new ArrayList<String>();
+        List<JsonNode> responses = new ArrayList<>();
 
         int zahl = 0;
 
-        for (int i = 0; i < Math.min(20, promtsArray.size()); i++) {
+        for (int i = 0; i < Math.min(25, promtsArray.size()); i++) {
             String promt = promtsArray.get(i);
             zahl++;
             System.out.println("Durchlauf " + zahl + " von " + promtsArray.size());
@@ -46,27 +43,44 @@ public class Main {
 
             JsonNode promtNode = mapper.readTree(promt);
 
-            // neuen Request-Body bauen
             ObjectNode requestBody = mapper.createObjectNode();
-            requestBody.put("model", "codereviewbot20");
+            requestBody.put("model", "codereviewbot30");
             requestBody.set("messages", mapper.createArrayNode().add(promtNode));
 
             String body = mapper.writeValueAsString(requestBody);
 
             JptClient api = new JptClient();
-
             String response = api.sendRequest(body);
 
-            System.out.println("Das ist der " + zahl + "durchlauf");
-            System.out.println(response);
-            responses.add(api.extractCompletionContent(response));
+            JsonNode responseNode;
+            try {
+                responseNode = mapper.readTree(response); // gesamte API-Antwort als JSON
+            } catch (Exception e) {
+                System.err.println("⚠️ Ungültige JSON-Response, wird als Text gespeichert.");
+                responseNode = mapper.createObjectNode().put("raw", response);
+            }
 
+            // Logge prompt + response (optional)
+            PromptRunLogger.logPromptResponse(promtNode, responseNode, zahl, "review-summary");
+
+            // Extrahiere das eigentliche Review-Objekt (content → JSON)
+            try {
+                String contentString = responseNode.path("choices").path(0).path("message").path("content").asText();
+                JsonNode reviewJson = mapper.readTree(contentString);
+                responses.add(reviewJson);
+            } catch (Exception e) {
+                System.err.println("⚠️ Konnte Review-JSON nicht extrahieren: " + e.getMessage());
+            }
+
+            System.out.println("✅ Durchlauf " + zahl + " abgeschlossen");
         }
 
         Aggregator aggregator = new Aggregator();
 
         String finalResponse = aggregator.aggregate(responses);
-        Aggregator.writeSummaryToFile(finalResponse, "src/main/resources/review-summary.txt");
+
+        PromptRunLogger.logFormattedResult("final-aggregation", finalResponse);
+
 
     }
 }
